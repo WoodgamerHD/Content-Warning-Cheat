@@ -9,7 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Windows.Media.Media3D;
 using UnityEngine;
-
+using Steamworks;
 
 
 namespace ContentWarningHax
@@ -21,6 +21,7 @@ namespace ContentWarningHax
 
       
         bool esp = true;
+        bool Botesp = true;
        
         bool FlyTest = false;
         public float NoClipSpeed = 0.1f;
@@ -30,8 +31,9 @@ namespace ContentWarningHax
       
         
         public static List<Player> PlayerController = new List<Player>();
+        public static List<Bot> BotController = new List<Bot>();
         public static List<Room> Room = new List<Room>();
-     
+        public static List<AOE> AOE = new List<AOE>();
        
         float natNextUpdateTime;
       
@@ -96,6 +98,10 @@ namespace ContentWarningHax
             if (GUILayout.Toggle(tab == 3, "Monsters", "Button", GUILayout.ExpandWidth(true)))
             {
                 tab = 3;
+            }
+            if (GUILayout.Toggle(tab == 4, "Steam", "Button", GUILayout.ExpandWidth(true)))
+            {
+                tab = 4;
             }
             GUILayout.EndVertical();
 
@@ -172,18 +178,12 @@ namespace ContentWarningHax
 
                         
                     }
-                    if (GUILayout.Button("SpawnDoorBlockers"))
-                    {
-                        foreach (Room item in Room)
-                        {
-                            item.SpawnDoorBlockers();
-                        }
-                    }
+                  
                     if (GUILayout.Button("Kill All"))
                     {
                         for (int i = 0; i < PlayerHandler.instance.players.Count; i++)
                         {
-                            PlayerHandler.instance.players[i].RPCA_PlayerDie();
+                            PlayerHandler.instance.players[i].Die();
                         }
                     }
                     GUILayout.EndVertical();
@@ -256,6 +256,27 @@ namespace ContentWarningHax
                     }
 
                     break;
+                    case 4:
+                    SteamAPICall_t hAPICall = SteamMatchmaking.RequestLobbyList();
+                    if (GUILayout.Button("Request Lobby List"))
+                    {
+                        hAPICall = SteamMatchmaking.RequestLobbyList();
+                        Debug.Log("Requested Lobby List");
+                    }
+
+                    GUILayout.Label("SteamAPICall_t: " + SteamMatchmaking.RequestLobbyList());
+
+                    if (GUILayout.Button("Random Join"))
+                    {
+                        MainMenuHandler.Instance.JoinRandom();
+                  
+                    }
+                    if (GUILayout.Button("Set Name"))
+                    {
+                        PhotonNetwork.NickName = "Артём";
+                    }
+
+                    break;
             }
 
             GUILayout.EndVertical();
@@ -294,6 +315,8 @@ namespace ContentWarningHax
 
                 windowRect = GUI.Window(0, windowRect, MenuWindow, "WoodSDK(Do not Resell or repost From unknowncheats.me)"); // Create the window with title "Menu"
             }
+
+
            
 
             if (esp)
@@ -317,10 +340,10 @@ namespace ContentWarningHax
                     if (player.IsLocal)
                         return;
 
-                    if (player.data.dead)
-                        return;
+                   
+           
 
-                    if (ESPUtils.IsOnScreen(w2s))
+                     if (ESPUtils.IsOnScreen(w2s))
                     {
 
                         float height = Mathf.Abs(worldToScreenTop.y - worldToScreenBottom.y);
@@ -339,21 +362,19 @@ namespace ContentWarningHax
                         int fontSize = Mathf.Clamp(Mathf.RoundToInt(12f / distance), 10, 20);
 
 
-                   
-
 
                         if (player.ai)
                         {
-                            
-                            ESPUtils.DrawString(namePosition, "AI" + "\n" + "HP: " + player.data.health, Color.red, true, fontSize, FontStyle.Bold);
-                          
+                            ESPUtils.DrawString(namePosition, player.name.Replace("(Clone)", ""), Color.red, true, fontSize, FontStyle.Bold);
                         }
                         else
                         {
-                            ESPUtils.DrawString(namePosition, player.name.Replace("(Clone)", "") + "\n" + "HP: " + player.data.health, Color.green, true, fontSize, FontStyle.Bold);
+                            ESPUtils.DrawString(namePosition, player.refs.view.Controller.NickName + "\n" + "HP: " + player.data.health, Color.green, true, fontSize, FontStyle.Bold);
                             ESPUtils.DrawHealth(new Vector2(w2s.x, UnityEngine.Screen.height - w2s.y + 22f), player.data.health, 100f, 0.5f, true);
 
                         }
+                     
+                       
 
                     }
                 }
@@ -394,7 +415,7 @@ namespace ContentWarningHax
 
                 PlayerController = Resources.FindObjectsOfTypeAll<Player>().ToList();
                 Room = Resources.FindObjectsOfTypeAll<Room>().ToList();
-             
+            
               
                 natNextUpdateTime = 0f;
             }
