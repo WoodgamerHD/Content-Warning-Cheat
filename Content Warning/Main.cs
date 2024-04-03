@@ -1,12 +1,13 @@
-﻿
 
 
+
+using DefaultNamespace;
 using Photon.Pun;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-
+using System.Windows.Media.Media3D;
 using UnityEngine;
 
 
@@ -20,25 +21,49 @@ namespace ContentWarningHax
 
       
         bool esp = true;
-      
+       
+        bool FlyTest = false;
+        public float NoClipSpeed = 0.1f;
 
         public static bool teleportFinderEnabled = false;
         public static Vector3 teleportPosition;
       
         
         public static List<Player> PlayerController = new List<Player>();
+        public static List<Room> Room = new List<Room>();
+     
        
         float natNextUpdateTime;
       
   
-        public static Camera cam;
+        public static UnityEngine.Camera cam;
    
         private Rect windowRect = new Rect(0, 0, 400, 400); 
         private int tab = 0; 
         private Color backgroundColor = Color.black; 
-        private bool showMenu = true; 
+        private bool showMenu = true;
+        public List<string> monsterNames = new List<string>
+    {
+        "Angler",
+        "BarnacleBall",
+        "BigSlap",
+        "Chaser",
+        "Drag",
+        "Ear",
+        "EyeGuy",
+        "Fear",
+        "Ghost",
+        "Jelly",
+        "Knifo",
+        "Mouth",
+        "Skinny",
+        "Snactcho",
+        "ToolkitBoy",
+        "Weeping",
+        "Zombie"
+    };
 
-     
+
         public static Color TestColor
         {
             get
@@ -68,7 +93,10 @@ namespace ContentWarningHax
             {
                 tab = 2;
             }
-
+            if (GUILayout.Toggle(tab == 3, "Monsters", "Button", GUILayout.ExpandWidth(true)))
+            {
+                tab = 3;
+            }
             GUILayout.EndVertical();
 
            
@@ -88,7 +116,7 @@ namespace ContentWarningHax
 
                     GUILayout.BeginHorizontal();
                     GUILayout.BeginVertical();
-
+                
                     if (GUILayout.Button("Crasher"))
                     {
                         foreach (Player player in PlayerController)
@@ -110,7 +138,8 @@ namespace ContentWarningHax
 
                         Player.localPlayer.CallRevive();
                     }
-
+                
+                 
                     GUILayout.EndVertical();
 
                     GUILayout.Space(10);
@@ -140,7 +169,22 @@ namespace ContentWarningHax
                             Player.localPlayer.data.health = float.MaxValue;
                             Player.localPlayer.data.currentStamina = float.MaxValue;
                             Player.localPlayer.data.rested = true;
+
                         
+                    }
+                    if (GUILayout.Button("SpawnDoorBlockers"))
+                    {
+                        foreach (Room item in Room)
+                        {
+                            item.SpawnDoorBlockers();
+                        }
+                    }
+                    if (GUILayout.Button("Kill All"))
+                    {
+                        for (int i = 0; i < PlayerHandler.instance.players.Count; i++)
+                        {
+                            PlayerHandler.instance.players[i].RPCA_PlayerDie();
+                        }
                     }
                     GUILayout.EndVertical();
 
@@ -166,7 +210,8 @@ namespace ContentWarningHax
                     GUILayout.Space(10);
 
                     GUILayout.BeginVertical();
-                   
+                
+
                     GUILayout.EndVertical();
 
                     GUILayout.EndHorizontal();
@@ -201,6 +246,16 @@ namespace ContentWarningHax
                         }
                     }
                     break;
+                case 3:
+                    foreach (string monsterName in monsterNames)
+                    {
+                        if (GUILayout.Button(monsterName))
+                        {
+                            SpawnMonster(monsterName);
+                        }
+                    }
+
+                    break;
             }
 
             GUILayout.EndVertical();
@@ -212,10 +267,20 @@ namespace ContentWarningHax
         {
             Debug.Log("Spawn item: " + item.name);
             Vector3 debugItemSpawnPos = MainCamera.instance.GetDebugItemSpawnPos();
-            Player.localPlayer.RequestCreatePickup(item, new ItemInstanceData(Guid.NewGuid()), debugItemSpawnPos, Quaternion.identity);
+            Player.localPlayer.RequestCreatePickup(item, new ItemInstanceData(Guid.NewGuid()), debugItemSpawnPos, UnityEngine.Quaternion.identity);
         }
-    
 
+        public static void SpawnMonster(string monster)
+        {
+            RaycastHit raycastHit = HelperFunctions.LineCheck(MainCamera.instance.transform.position, MainCamera.instance.transform.position + MainCamera.instance.transform.forward * 30f, HelperFunctions.LayerType.TerrainProp, 0f);
+            Vector3 vector = MainCamera.instance.transform.position + MainCamera.instance.transform.forward * 30f;
+            if (raycastHit.collider != null)
+            {
+                vector = raycastHit.point;
+            }
+            vector = HelperFunctions.GetGroundPos(vector + Vector3.up * 1f, HelperFunctions.LayerType.TerrainProp, 0f);
+            PhotonNetwork.Instantiate(monster, vector, UnityEngine.Quaternion.identity, 0, null);
+        }
 
         public void OnGUI()
         {
@@ -246,8 +311,8 @@ namespace ContentWarningHax
                     enemyTop.x = enemyBottom.x;
                     enemyTop.z = enemyBottom.z;
                     enemyTop.y = enemyBottom.y + 2f;
-                    Vector3 worldToScreenBottom = Camera.main.WorldToScreenPoint(enemyBottom);
-                    Vector3 worldToScreenTop = Camera.main.WorldToScreenPoint(enemyTop);
+                    Vector3 worldToScreenBottom = cam.WorldToScreenPoint(enemyBottom);
+                    Vector3 worldToScreenTop = cam.WorldToScreenPoint(enemyTop);
 
                     if (player.IsLocal)
                         return;
@@ -270,7 +335,7 @@ namespace ContentWarningHax
                         namePosition -= new Vector2(player.HeadPosition().x - player.HeadPosition().x, 0f);
                         hpPosition -= new Vector2(player.HeadPosition().x - player.HeadPosition().x, 0f);
 
-                        float distance = Vector3.Distance(Camera.main.transform.position, player.HeadPosition());
+                        float distance = Vector3.Distance(UnityEngine.Camera.main.transform.position, player.HeadPosition());
                         int fontSize = Mathf.Clamp(Mathf.RoundToInt(12f / distance), 10, 20);
 
 
@@ -285,8 +350,8 @@ namespace ContentWarningHax
                         }
                         else
                         {
-                            ESPUtils.DrawString(namePosition, player.name.Replace("(Clone)", "") + "\n" + "HP: " + player.data.health + "\n" + player.data.currentItem, Color.green, true, fontSize, FontStyle.Bold);
-                            ESPUtils.DrawHealth(new Vector2(w2s.x, UnityEngine.Screen.height - w2s.y + 20f), player.data.health, 100f, 0.5f, true);
+                            ESPUtils.DrawString(namePosition, player.name.Replace("(Clone)", "") + "\n" + "HP: " + player.data.health, Color.green, true, fontSize, FontStyle.Bold);
+                            ESPUtils.DrawHealth(new Vector2(w2s.x, UnityEngine.Screen.height - w2s.y + 22f), player.data.health, 100f, 0.5f, true);
 
                         }
 
@@ -310,7 +375,8 @@ namespace ContentWarningHax
 
 
 
-   
+
+
         public void Update()
         {
           
@@ -320,7 +386,6 @@ namespace ContentWarningHax
             }
          
 
-
             natNextUpdateTime += Time.deltaTime;
 
             if (natNextUpdateTime >= 1f)
@@ -328,7 +393,8 @@ namespace ContentWarningHax
 
 
                 PlayerController = Resources.FindObjectsOfTypeAll<Player>().ToList();
-               
+                Room = Resources.FindObjectsOfTypeAll<Room>().ToList();
+             
               
                 natNextUpdateTime = 0f;
             }
@@ -338,7 +404,7 @@ namespace ContentWarningHax
 
 
 
-            cam = Camera.main;
+            cam = UnityEngine.Camera.main;
 
         }
     }
