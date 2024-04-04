@@ -10,6 +10,10 @@ using System.Linq;
 using System.Windows.Media.Media3D;
 using UnityEngine;
 using Steamworks;
+using UnityEngine.UI;
+using Photon.Realtime;
+using static UnityEngine.EventSystems.EventTrigger;
+using static Photon.Voice.WebRTCAudioLib;
 
 
 namespace ContentWarningHax
@@ -21,19 +25,14 @@ namespace ContentWarningHax
 
       
         bool esp = true;
-        bool Botesp = true;
-       
-        bool FlyTest = false;
-        public float NoClipSpeed = 0.1f;
-
+     
         public static bool teleportFinderEnabled = false;
         public static Vector3 teleportPosition;
       
         
         public static List<Player> PlayerController = new List<Player>();
-        public static List<Bot> BotController = new List<Bot>();
         public static List<Room> Room = new List<Room>();
-        public static List<AOE> AOE = new List<AOE>();
+        
        
         float natNextUpdateTime;
       
@@ -44,6 +43,9 @@ namespace ContentWarningHax
         private int tab = 0; 
         private Color backgroundColor = Color.black; 
         private bool showMenu = true;
+
+
+
         public List<string> monsterNames = new List<string>
     {
         "Angler",
@@ -77,6 +79,9 @@ namespace ContentWarningHax
         int selectedItemIndex = -1;
         
         Vector2 scrollPosition = Vector2.zero;
+        Vector2 scrollPosition1 = Vector2.zero;
+
+      
         void MenuWindow(int windowID)
         {
             GUILayout.BeginHorizontal();
@@ -103,6 +108,11 @@ namespace ContentWarningHax
             {
                 tab = 4;
             }
+            if (GUILayout.Toggle(tab == 5, "Random", "Button", GUILayout.ExpandWidth(true)))
+            {
+                tab = 5;
+            }
+         
             GUILayout.EndVertical();
 
            
@@ -128,12 +138,10 @@ namespace ContentWarningHax
                         foreach (Player player in PlayerController)
                         {
 
-                            if (player.IsLocal == false)
-                            {
-
+                          
                                 PhotonNetwork.SetMasterClient(PhotonNetwork.LocalPlayer);
                                 PhotonNetwork.DestroyPlayerObjects(player.refs.view.Controller);
-                            }
+                            
 
                         }
 
@@ -144,8 +152,13 @@ namespace ContentWarningHax
 
                         Player.localPlayer.CallRevive();
                     }
-                
-                 
+                    if (GUILayout.Button("Set Host"))
+                    {
+
+                        PhotonNetwork.SetMasterClient(PhotonNetwork.LocalPlayer);
+                    }
+
+
                     GUILayout.EndVertical();
 
                     GUILayout.Space(10);
@@ -181,9 +194,9 @@ namespace ContentWarningHax
                   
                     if (GUILayout.Button("Kill All"))
                     {
-                        for (int i = 0; i < PlayerHandler.instance.players.Count; i++)
+                        for (int i = 0; i < PlayerHandler.instance.playerAlive.Count; i++)
                         {
-                            PlayerHandler.instance.players[i].Die();
+                            PlayerHandler.instance.playerAlive[i].Die();
                         }
                     }
                     GUILayout.EndVertical();
@@ -220,6 +233,7 @@ namespace ContentWarningHax
 
                     break;
                 case 2:
+                    GUILayout.BeginVertical(GUI.skin.box);
                     scrollPosition = GUILayout.BeginScrollView(scrollPosition);
 
                     for (int i = 0; i < ItemDatabase.Instance.lastLoadedItems.Count; i++)
@@ -245,8 +259,11 @@ namespace ContentWarningHax
                             selectedItemIndex = -1;
                         }
                     }
+                    GUILayout.EndVertical();
                     break;
                 case 3:
+                    GUILayout.BeginVertical(GUI.skin.box);
+                    scrollPosition1 = GUILayout.BeginScrollView(scrollPosition1);
                     foreach (string monsterName in monsterNames)
                     {
                         if (GUILayout.Button(monsterName))
@@ -254,9 +271,11 @@ namespace ContentWarningHax
                             SpawnMonster(monsterName);
                         }
                     }
-
+                    GUILayout.EndScrollView();
+                    GUILayout.EndVertical();
                     break;
                     case 4:
+                    GUILayout.BeginVertical(GUI.skin.box);
                     SteamAPICall_t hAPICall = SteamMatchmaking.RequestLobbyList();
                     if (GUILayout.Button("Request Lobby List"))
                     {
@@ -271,12 +290,20 @@ namespace ContentWarningHax
                         MainMenuHandler.Instance.JoinRandom();
                   
                     }
-                    if (GUILayout.Button("Set Name"))
+                   
+                    GUILayout.EndVertical();
+                    break;
+                case 5:
+                    GUILayout.BeginVertical(GUI.skin.box);
+                    if (GUILayout.Button("StartMoney<host>"))
                     {
-                        PhotonNetwork.NickName = "Артём";
+                        BigNumbers.Instance.StartMoney = int.MaxValue;
                     }
+                   
+                    GUILayout.EndVertical();
 
                     break;
+              
             }
 
             GUILayout.EndVertical();
@@ -314,10 +341,12 @@ namespace ContentWarningHax
                 GUI.backgroundColor = backgroundColor;
 
                 windowRect = GUI.Window(0, windowRect, MenuWindow, "WoodSDK(Do not Resell or repost From unknowncheats.me)"); // Create the window with title "Menu"
+             
+                
             }
 
+         
 
-           
 
             if (esp)
             {
@@ -415,7 +444,7 @@ namespace ContentWarningHax
 
                 PlayerController = Resources.FindObjectsOfTypeAll<Player>().ToList();
                 Room = Resources.FindObjectsOfTypeAll<Room>().ToList();
-            
+              
               
                 natNextUpdateTime = 0f;
             }
