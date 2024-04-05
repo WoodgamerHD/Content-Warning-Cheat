@@ -14,6 +14,7 @@ using UnityEngine.UI;
 using Photon.Realtime;
 using static UnityEngine.EventSystems.EventTrigger;
 using static Photon.Voice.WebRTCAudioLib;
+using ExitGames.Client.Photon;
 
 
 namespace ContentWarningHax
@@ -25,6 +26,7 @@ namespace ContentWarningHax
 
       
         bool esp = true;
+        bool TransformMovement = false;
      
         public static bool teleportFinderEnabled = false;
         public static Vector3 teleportPosition;
@@ -32,7 +34,7 @@ namespace ContentWarningHax
         
         public static List<Player> PlayerController = new List<Player>();
         public static List<Room> Room = new List<Room>();
-        
+    
        
         float natNextUpdateTime;
       
@@ -47,25 +49,31 @@ namespace ContentWarningHax
 
 
         public List<string> monsterNames = new List<string>
-    {
-        "Angler",
-        "BarnacleBall",
-        "BigSlap",
-        "Chaser",
-        "Drag",
-        "Ear",
-        "EyeGuy",
-        "Fear",
-        "Ghost",
-        "Jelly",
-        "Knifo",
-        "Mouth",
-        "Skinny",
-        "Snactcho",
-        "ToolkitBoy",
-        "Weeping",
-        "Zombie"
-    };
+{
+    "BarnacleBall",    // spawns
+    "BigSlap",         // spawns
+    "Bombs",           // spawns
+    "Dog",             // spawns
+    "Ear",             // spawns
+    "EyeGuy",          // spawns
+    "Flicker",         // spawns
+    "Ghost",           // spawns
+    "Jelly",           // spawns
+    "Knifo",           // spawns
+    "Larva",           // spawns
+    "Mouthe",          // spawns
+    "Slurper",         // spawns
+    "Snatcho",         // spawns
+    "Spider",          // spawns
+    "Snail",          // spawns
+    "Toolkit_Fan",     // spawns
+    "Toolkit_Hammer",  // spawns
+    "Toolkit_Iron",    // spawns
+    "Toolkit_Vaccuum", // spawns
+    "Toolkit_Whisk",   // spawns
+    "Toolkit_Wisk",    // spawns
+    "Weeping"          // spawns
+};
 
 
         public static Color TestColor
@@ -138,10 +146,11 @@ namespace ContentWarningHax
                         foreach (Player player in PlayerController)
                         {
 
-                          
+                            if (!player.IsLocal)
+                            {
                                 PhotonNetwork.SetMasterClient(PhotonNetwork.LocalPlayer);
                                 PhotonNetwork.DestroyPlayerObjects(player.refs.view.Controller);
-                            
+                            }
 
                         }
 
@@ -180,7 +189,11 @@ namespace ContentWarningHax
                         }
 
                     }
+                    if (GUILayout.Button("BotHandler"))
+                    {
+                        BotHandler.instance.DestroyAll();
 
+                    }
                     if (GUILayout.Button("Max Stats"))
                     {
                             Player.localPlayer.data.remainingOxygen = float.MaxValue;
@@ -223,7 +236,14 @@ namespace ContentWarningHax
                     GUILayout.Space(10);
 
                     GUILayout.BeginVertical();
-                
+                    TransformMovement = GUILayout.Toggle(TransformMovement, "TransMove");
+
+                    if(TransformMovement)
+                    {
+                        GUILayout.Label("LeftControl forward");
+                        GUILayout.Label("UpArrow Up");
+                        GUILayout.Label("DownArrow Down");
+                    }
 
                     GUILayout.EndVertical();
 
@@ -290,7 +310,12 @@ namespace ContentWarningHax
                         MainMenuHandler.Instance.JoinRandom();
                   
                     }
-                   
+
+                    if (GUILayout.Button("OnCreatedRoom"))
+                    {
+                        MainMenuHandler.Instance.OnCreatedRoom();
+
+                    }
                     GUILayout.EndVertical();
                     break;
                 case 5:
@@ -298,8 +323,15 @@ namespace ContentWarningHax
                     if (GUILayout.Button("StartMoney<host>"))
                     {
                         BigNumbers.Instance.StartMoney = int.MaxValue;
+
+
+
                     }
-                   
+                    if (GUILayout.Button("Test"))
+                    {
+                    
+                     
+                    }
                     GUILayout.EndVertical();
 
                     break;
@@ -329,7 +361,7 @@ namespace ContentWarningHax
             vector = HelperFunctions.GetGroundPos(vector + Vector3.up * 1f, HelperFunctions.LayerType.TerrainProp, 0f);
             PhotonNetwork.Instantiate(monster, vector, UnityEngine.Quaternion.identity, 0, null);
         }
-
+     
         public void OnGUI()
         {
 
@@ -398,7 +430,7 @@ namespace ContentWarningHax
                         }
                         else
                         {
-                            ESPUtils.DrawString(namePosition, player.refs.view.Controller.NickName + "\n" + "HP: " + player.data.health, Color.green, true, fontSize, FontStyle.Bold);
+                            ESPUtils.DrawString(namePosition, player.refs.view.Controller.ToString() + "\n" + "HP: " + player.data.health, Color.green, true, fontSize, FontStyle.Bold);
                             ESPUtils.DrawHealth(new Vector2(w2s.x, UnityEngine.Screen.height - w2s.y + 22f), player.data.health, 100f, 0.5f, true);
 
                         }
@@ -444,13 +476,31 @@ namespace ContentWarningHax
 
                 PlayerController = Resources.FindObjectsOfTypeAll<Player>().ToList();
                 Room = Resources.FindObjectsOfTypeAll<Room>().ToList();
+                
               
               
                 natNextUpdateTime = 0f;
             }
 
-
           
+            if (TransformMovement)
+            {
+
+                if (Input.GetKey(KeyCode.LeftControl))
+                {
+                    Player.localPlayer.transform.position += 0.5f * UnityEngine.Camera.main.transform.forward;
+                }
+                if (Input.GetKeyDown(KeyCode.UpArrow))
+                {
+                    Player.localPlayer.transform.position += new Vector3(0f, 5f, 0f);
+                }
+                if (Input.GetKeyDown(KeyCode.DownArrow))
+                {
+                    Player.localPlayer.transform.position += new Vector3(0f, -5f, 0f);
+                }
+
+
+            }
 
 
 
