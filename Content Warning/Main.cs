@@ -27,7 +27,8 @@ namespace ContentWarningHax
       
         bool esp = true;
         bool TransformMovement = false;
-     
+        public string customText = ""; // Custom text input field
+
         public static bool teleportFinderEnabled = false;
         public static Vector3 teleportPosition;
       
@@ -35,7 +36,10 @@ namespace ContentWarningHax
         public static List<Player> PlayerController = new List<Player>();
         public static List<Room> Room = new List<Room>();
     
-       
+        Photon.Realtime.Player[] otherPlayers = PhotonNetwork.PlayerListOthers;
+        private string lobbyInfo = ""; // String to store lobby information
+
+
         float natNextUpdateTime;
       
   
@@ -72,7 +76,9 @@ namespace ContentWarningHax
     "Toolkit_Vaccuum", // spawns
     "Toolkit_Whisk",   // spawns
     "Toolkit_Wisk",    // spawns
-    "Weeping"          // spawns
+    "Weeping",          // spawns
+
+
 };
 
 
@@ -120,7 +126,10 @@ namespace ContentWarningHax
             {
                 tab = 5;
             }
-         
+            if (GUILayout.Toggle(tab == 6, "Players", "Button", GUILayout.ExpandWidth(true)))
+            {
+                tab = 6;
+            }
             GUILayout.EndVertical();
 
            
@@ -253,37 +262,32 @@ namespace ContentWarningHax
 
                     break;
                 case 2:
+                    // Items content
                     GUILayout.BeginVertical(GUI.skin.box);
+
+                 
+
                     scrollPosition = GUILayout.BeginScrollView(scrollPosition);
 
-                    for (int i = 0; i < ItemDatabase.Instance.lastLoadedItems.Count; i++)
+                    foreach (var item in ItemDatabase.Instance.lastLoadedItems)
                     {
-                        var item = ItemDatabase.Instance.lastLoadedItems[i];
-
-                        string ItemInformation = item.name;
-                        if (GUILayout.Button(ItemInformation))
+                        if (GUILayout.Button(item.name))
                         {
-                            selectedItemIndex = i;
+                            EquipItem(item);
                         }
                     }
+
                     GUILayout.EndScrollView();
-
-
-
-                    if (selectedItemIndex != -1)
-                    {
-                      
-                        if (GUILayout.Button("Give Item"))
-                        {
-                            EquipItem(ItemDatabase.Instance.lastLoadedItems[selectedItemIndex]);
-                            selectedItemIndex = -1;
-                        }
-                    }
                     GUILayout.EndVertical();
                     break;
                 case 3:
+                    // Monsters content
                     GUILayout.BeginVertical(GUI.skin.box);
+
+                  
+
                     scrollPosition1 = GUILayout.BeginScrollView(scrollPosition1);
+
                     foreach (string monsterName in monsterNames)
                     {
                         if (GUILayout.Button(monsterName))
@@ -291,6 +295,7 @@ namespace ContentWarningHax
                             SpawnMonster(monsterName);
                         }
                     }
+
                     GUILayout.EndScrollView();
                     GUILayout.EndVertical();
                     break;
@@ -324,32 +329,68 @@ namespace ContentWarningHax
                     {
                         BigNumbers.Instance.StartMoney = int.MaxValue;
 
-
-
                     }
-                    if (GUILayout.Button("Test"))
-                    {
-                    
-                     
-                    }
+                  
                     GUILayout.EndVertical();
 
                     break;
-              
+                case 6:
+                    GUILayout.BeginVertical(GUI.skin.box);
+                     GUILayout.Label("Players in Lobby:");
+
+
+
+                    lobbyInfo = ""; 
+
+                    foreach (Photon.Realtime.Player player in otherPlayers)
+                    {
+                        string playerInfo = string.Format("{0} | {1}", player.NickName, player.CustomProperties.ToStringFull());
+                        GUILayout.Label(playerInfo);
+                        lobbyInfo += playerInfo + "\n";
+                    }
+
+                    if (GUILayout.Button("Save Lobby Info"))
+                    {
+                        SaveLobbyInfo();
+                    }
+
+                    GUILayout.EndVertical();
+
+                    break;
+
             }
 
             GUILayout.EndVertical();
 
             GUILayout.EndHorizontal();
-            GUI.DragWindow(); // Allow the user to drag the window around
+            GUI.DragWindow(); 
         }
         public static void EquipItem(Item item)
         {
             Debug.Log("Spawn item: " + item.name);
             Vector3 debugItemSpawnPos = MainCamera.instance.GetDebugItemSpawnPos();
+
+
             Player.localPlayer.RequestCreatePickup(item, new ItemInstanceData(Guid.NewGuid()), debugItemSpawnPos, UnityEngine.Quaternion.identity);
         }
+   
+        void SaveLobbyInfo()
+        {
+            string filePath = "LobbyInfo.txt"; 
 
+            try
+            {
+                // Write lobbyInfo string to a text file
+                File.WriteAllText(filePath, lobbyInfo);
+                Debug.Log("Lobby info saved to " + filePath);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError("Failed to save lobby info: " + ex.Message);
+            }
+        }
+    
+       
         public static void SpawnMonster(string monster)
         {
             RaycastHit raycastHit = HelperFunctions.LineCheck(MainCamera.instance.transform.position, MainCamera.instance.transform.position + MainCamera.instance.transform.forward * 30f, HelperFunctions.LayerType.TerrainProp, 0f);
@@ -443,6 +484,8 @@ namespace ContentWarningHax
             
 
         }
+       
+
 
         public void Start()
         {
@@ -450,8 +493,9 @@ namespace ContentWarningHax
             windowRect.x = (Screen.width - windowRect.width) / 2;
             windowRect.y = (Screen.height - windowRect.height) / 2;
 
-          
-          
+
+        
+
         }
 
 
@@ -476,7 +520,8 @@ namespace ContentWarningHax
 
                 PlayerController = Resources.FindObjectsOfTypeAll<Player>().ToList();
                 Room = Resources.FindObjectsOfTypeAll<Room>().ToList();
-                
+              
+                otherPlayers =  PhotonNetwork.PlayerListOthers;
               
               
                 natNextUpdateTime = 0f;
@@ -497,7 +542,7 @@ namespace ContentWarningHax
                 if (Input.GetKeyDown(KeyCode.DownArrow))
                 {
                     Player.localPlayer.transform.position += new Vector3(0f, -5f, 0f);
-                }
+                } 
 
 
             }
